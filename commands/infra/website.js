@@ -1,47 +1,38 @@
 // commands/infra/website.js
-const { SlashCommandBuilder, InteractionResponseType, MessageFlags } = require('discord.js');
-const { adminRole, adminUsers } = require('../../config.json');
+import { SlashCommandBuilder } from 'discord.js';
 
-module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('website')
-        .setDescription('Adds a website to the status monitor (admin only).')
-        .addStringOption(option =>
-            option.setName('url')
-                .setDescription('The URL of the website.')
-                .setRequired(true)),
-    async execute(interaction) {
-        if (!interaction.member.roles.cache.has(adminRole) && !adminUsers.includes(interaction.user.id)) {
-            return interaction.reply({
-                content: 'You do not have permission to add websites.',
-                flags: MessageFlags.Ephemeral
-            });
-        }
+const ADMIN_ROLE_ID = process.env.ADMIN_ROLE_ID;
+const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
 
-        const websiteUrl = interaction.options.getString('url');
+export default {
+  data: new SlashCommandBuilder()
+    .setName('website')
+    .setDescription('Adds a website to the status monitor (admin only).')
+    .addStringOption(option =>
+      option.setName('url')
+        .setDescription('The URL of the website.')
+        .setRequired(true)),
+  async execute(interaction) {
+    const hasRole = ADMIN_ROLE_ID ? interaction.member.roles.cache.has(ADMIN_ROLE_ID) : false;
+    const isAdminUser = ADMIN_USER_IDS.includes(interaction.user.id);
+    if (!hasRole && !isAdminUser) {
+      return interaction.reply({ content: 'You do not have permission to add websites.', ephemeral: true });
+    }
 
-        try {
-            console.log(`Adding website to monitor: ${websiteUrl}`);
+    const websiteUrl = interaction.options.getString('url');
 
-            // Defer reply if processing might take time
-            await interaction.deferReply({ ephemeral: true });
-
-            // Simulate adding website logic
-            // await addWebsiteToMonitor(websiteUrl);
-
-            await interaction.editReply(`Added ${websiteUrl} to the status monitor.`);
-        } catch (error) {
-            console.error("Error adding website:", error);
-            // If reply hasn't been sent yet
-            if (!interaction.replied) {
-                await interaction.reply({
-                    content: 'There was an error adding the website.',
-                    flags: MessageFlags.Ephemeral
-                });
-            } else {
-                await interaction.editReply('There was an error adding the website.');
-            }
-        }
-    },
-    cooldown: 10, // 10 second cooldown for adding websites
+    try {
+      await interaction.deferReply({ ephemeral: true });
+      // Simulate adding website logic
+      await interaction.editReply(`Added ${websiteUrl} to the status monitor.`);
+    } catch (error) {
+      console.error('Error adding website:', error);
+      if (!interaction.replied) {
+        await interaction.reply({ content: 'There was an error adding the website.', ephemeral: true });
+      } else {
+        await interaction.editReply('There was an error adding the website.');
+      }
+    }
+  },
+  cooldown: 10,
 };

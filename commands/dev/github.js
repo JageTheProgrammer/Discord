@@ -1,49 +1,46 @@
-// commands/dev/github.js
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const fetchGithub = require('../../utils/fetchGithub');
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import fetchGithub from '../../utils/fetchGithub.js';
 
-module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('github')
-        .setDescription('Gets information about a GitHub user.')
-        .addStringOption(option =>
-            option.setName('user')
-                .setDescription('The GitHub username.')
-                .setRequired(true)),
-    async execute(interaction) {
-        const username = interaction.options.getString('user');
+export default {
+  data: new SlashCommandBuilder()
+    .setName('github')
+    .setDescription('Gets information about a GitHub user.')
+    .addStringOption(option =>
+      option.setName('user')
+        .setDescription('The GitHub username.')
+        .setRequired(true)),
+  async execute(interaction) {
+    const username = interaction.options.getString('user');
 
     await interaction.deferReply({ ephemeral: true });
 
     try {
-        const userInfo = await fetchGithub(username);
-        if (!userInfo) {
+      const userInfo = await fetchGithub(username);
+      if (!userInfo) {
         return await interaction.editReply({ content: `User \`${username}\` not found on GitHub.` });
-        }
+      }
 
-        const embed = new EmbedBuilder()
+      const embed = new EmbedBuilder()
         .setTitle(`GitHub Profile: ${userInfo.login}`)
         .setURL(userInfo.html_url)
         .setDescription(userInfo.bio || 'No bio available.')
         .setThumbnail(userInfo.avatar_url)
         .addFields(
-            { name: 'Followers', value: `${userInfo.followers}`, inline: true },
-            { name: 'Following', value: `${userInfo.following}`, inline: true },
-            { name: 'Public Repos', value: `${userInfo.public_repos}`, inline: true }
+          { name: 'Followers', value: `${userInfo.followers}`, inline: true },
+          { name: 'Following', value: `${userInfo.following}`, inline: true },
+          { name: 'Public Repos', value: `${userInfo.public_repos}`, inline: true }
         )
         .setColor('#0099ff');
 
-        await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-        console.error(error);
-        if (interaction.deferred || interaction.replied) {
+      console.error(error);
+      if (interaction.deferred || interaction.replied) {
         await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
-        } else {
+      } else {
         await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-        }
+      }
     }
-
-    },
-        cooldown: 10, // 10 second cooldown for adding websites
-
+  },
+  cooldown: 10,
 };
