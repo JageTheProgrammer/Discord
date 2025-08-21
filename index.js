@@ -54,9 +54,9 @@ async function start() {
 		await loadCommands();
 		await loadEvents();
 
-		const mongoDbUri = process.env.MONGODB_URI;
+		const mongoDbUri = process.env.MONGODB_URI || process.env.MONGO_URI || process.env.MONGODB_URL || process.env.DATABASE_URL;
 		if (mongoDbUri) {
-			await mongoose.connect(mongoDbUri, { useNewUrlParser: true, useUnifiedTopology: true });
+			await mongoose.connect(mongoDbUri);
 			console.log('Connected to MongoDB!');
 			// Cleanup: drop stale unique index on email if present (prevents E11000 on null email)
 			try {
@@ -70,7 +70,7 @@ async function start() {
 				console.warn('Index cleanup skipped:', idxErr?.message || idxErr);
 			}
 		} else {
-			console.warn('MONGODB_URI not set. Skipping MongoDB connection.');
+			console.warn('No MongoDB connection string found in env (MONGODB_URI/MONGO_URI/MONGODB_URL/DATABASE_URL). Skipping MongoDB connection.');
 		}
 
 		const token = process.env.BOT_TOKEN;
