@@ -58,16 +58,18 @@ async function start() {
 		if (mongoDbUri) {
 			await mongoose.connect(mongoDbUri);
 			console.log('Connected to MongoDB!');
-			// Cleanup: drop stale unique index on email if present (prevents E11000 on null email)
+			// Ensure a safe partial unique index on email (enforces uniqueness only when email is a string)
 			try {
 				const usersColl = mongoose.connection.db.collection('users');
 				const indexes = await usersColl.indexes();
 				if (indexes.some((idx) => idx.name === 'email_1')) {
 					await usersColl.dropIndex('email_1');
-					console.log('Dropped stale unique index "email_1" on collection "users".');
+					console.log('Dropped existing index "email_1" to recreate as partial unique.');
 				}
+				await usersColl.createIndex({ email: 1 }, { name: 'email_1', unique: true, partialFilterExpression: { email: { $type: 'string' } } });
+				console.log('Ensured partial unique index on users.email');
 			} catch (idxErr) {
-				console.warn('Index cleanup skipped:', idxErr?.message || idxErr);
+				console.warn('Index ensure skipped:', idxErr?.message || idxErr);
 			}
 		} else {
 			console.warn('No MongoDB connection string found in env (MONGODB_URI/MONGO_URI/MONGODB_URL/DATABASE_URL). Skipping MongoDB connection.');
