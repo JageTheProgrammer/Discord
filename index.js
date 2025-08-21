@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { Client, Collection, GatewayIntentBits } from 'discord.js';
+import { Client, Collection, GatewayIntentBits, REST, Routes } from 'discord.js';
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -24,11 +24,38 @@ async function loadCommands() {
 			const imported = await import(moduleUrl);
 			const command = imported.default ?? imported;
 			if (command && 'data' in command && 'execute' in command) {
+				// Prefix dev commands to group them in the slash command picker
+				if (folder === 'dev') {
+					const originalName = command.data.name;
+					if (!originalName.startsWith('dev-')) {
+						command.data.setName(`dev-${originalName}`);
+					}
+				}
 				client.commands.set(command.data.name, command);
 			} else {
 				console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
 			}
 		}
+	}
+}
+
+async function registerCommands() {
+	const token = process.env.BOT_TOKEN;
+	const clientId = process.env.CLIENT_ID;
+	const guildId = process.env.GUILD_ID; // optional
+	if (!token || !clientId) {
+		console.warn('Skipping command registration: BOT_TOKEN and/or CLIENT_ID missing.');
+		return;
+	}
+	const rest = new REST({ version: '10' }).setToken(token);
+	const body = Array.from(client.commands.values()).map((c) => c.data.toJSON());
+	try {
+		console.log(`Registering ${body.length} application (/) commands ${guildId ? `(guild ${guildId})` : '(global)' } ...`);
+		const route = guildId ? Routes.applicationGuildCommands(clientId, guildId) : Routes.applicationCommands(clientId);
+		await rest.put(route, { body });
+		console.log('Commands registered successfully (old commands replaced).');
+	} catch (err) {
+		console.error('Failed to register commands:', err);
 	}
 }
 
@@ -51,6 +78,7 @@ async function loadEvents() {
 async function start() {
 	try {
 		await loadCommands();
+		await registerCommands();
 		await loadEvents();
 
 		const token = process.env.BOT_TOKEN;
