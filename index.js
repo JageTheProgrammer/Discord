@@ -1,6 +1,5 @@
 import 'dotenv/config';
 import { Client, Collection, GatewayIntentBits } from 'discord.js';
-import mongoose from 'mongoose';
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -53,27 +52,6 @@ async function start() {
 	try {
 		await loadCommands();
 		await loadEvents();
-
-		const mongoDbUri = process.env.MONGODB_URI || process.env.MONGO_URI || process.env.MONGODB_URL || process.env.DATABASE_URL;
-		if (mongoDbUri) {
-			await mongoose.connect(mongoDbUri);
-			console.log('Connected to MongoDB!');
-			// Ensure a safe partial unique index on email (enforces uniqueness only when email is a string)
-			try {
-				const usersColl = mongoose.connection.db.collection('users');
-				const indexes = await usersColl.indexes();
-				if (indexes.some((idx) => idx.name === 'email_1')) {
-					await usersColl.dropIndex('email_1');
-					console.log('Dropped existing index "email_1" to recreate as partial unique.');
-				}
-				await usersColl.createIndex({ email: 1 }, { name: 'email_1', unique: true, partialFilterExpression: { email: { $type: 'string' } } });
-				console.log('Ensured partial unique index on users.email');
-			} catch (idxErr) {
-				console.warn('Index ensure skipped:', idxErr?.message || idxErr);
-			}
-		} else {
-			console.warn('No MongoDB connection string found in env (MONGODB_URI/MONGO_URI/MONGODB_URL/DATABASE_URL). Skipping MongoDB connection.');
-		}
 
 		const token = process.env.BOT_TOKEN;
 		if (!token) {
