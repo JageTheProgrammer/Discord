@@ -86,7 +86,12 @@ export default {
 			if (interaction.replied || interaction.deferred) {
 				await interaction.followUp({ content: replyMessage, flags: MessageFlags.Ephemeral }).catch((err) => console.error('Error during followUp:', err));
 			} else {
-				await interaction.reply({ content: replyMessage, flags: MessageFlags.Ephemeral }).catch((err) => console.error('Error during reply:', err));
+				try {
+					await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+					await interaction.editReply({ content: replyMessage });
+				} catch (err) {
+					console.error('Error during reply:', err);
+				}
 			}
 		}
 	},
