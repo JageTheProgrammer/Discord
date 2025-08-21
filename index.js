@@ -58,6 +58,17 @@ async function start() {
 		if (mongoDbUri) {
 			await mongoose.connect(mongoDbUri, { useNewUrlParser: true, useUnifiedTopology: true });
 			console.log('Connected to MongoDB!');
+			// Cleanup: drop stale unique index on email if present (prevents E11000 on null email)
+			try {
+				const usersColl = mongoose.connection.db.collection('users');
+				const indexes = await usersColl.indexes();
+				if (indexes.some((idx) => idx.name === 'email_1')) {
+					await usersColl.dropIndex('email_1');
+					console.log('Dropped stale unique index "email_1" on collection "users".');
+				}
+			} catch (idxErr) {
+				console.warn('Index cleanup skipped:', idxErr?.message || idxErr);
+			}
 		} else {
 			console.warn('MONGODB_URI not set. Skipping MongoDB connection.');
 		}
