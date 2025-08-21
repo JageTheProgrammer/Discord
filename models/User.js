@@ -1,10 +1,10 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
   discordId: { type: String, required: true, unique: true },
-  username: { type: String },            // optional, store the last known username
-  commandsUsed: { type: Number, default: 0 }, // track command usage
+  username: { type: String },
+  commandsUsed: { type: Number, default: 0 },
   joinedAt: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.model('User', userSchema);
+export default mongoose.model('User', userSchema);

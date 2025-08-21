@@ -1,12 +1,11 @@
-const { SlashCommandBuilder } = require("discord.js");
+import { SlashCommandBuilder } from 'discord.js';
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
-    .setName("challenge")
-    .setDescription("Get today’s coding challenge."),
+    .setName('challenge')
+    .setDescription('Get today’s coding challenge.'),
   async execute(interaction) {
-    await interaction.reply("💡 Today’s challenge: Build a Fibonacci function!");
+    await interaction.reply('💡 Today’s challenge: Build a Fibonacci function!');
   },
-      cooldown: 10, // 10 second cooldown for adding websites
-
+  cooldown: 10,
 };

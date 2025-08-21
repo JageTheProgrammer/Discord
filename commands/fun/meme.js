@@ -1,11 +1,11 @@
-const { SlashCommandBuilder } = require("discord.js");
+import { SlashCommandBuilder } from 'discord.js';
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
-    .setName("meme")
-    .setDescription("Get a random programming meme."),
+    .setName('meme')
+    .setDescription('Get a random programming meme.'),
   async execute(interaction) {
-    await interaction.reply("😂 Here’s your random meme (placeholder).");
+    await interaction.reply('😂 Here’s your random meme (placeholder).');
   },
-  cooldown: 10, // 10 second cooldown for adding websites
+  cooldown: 10,
 };
