@@ -20,8 +20,7 @@
   "dependencies": {
     "express": "^4.19.2",
     "discord.js": "^14.22.0",
-    "dotenv": "^16.3.1",
-    "mongoose": "^8.17.2"
+    "dotenv": "^16.3.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
