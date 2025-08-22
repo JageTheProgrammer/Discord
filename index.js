@@ -1,20 +1,26 @@
+// index.js
 import 'dotenv/config';
 import { Client, Collection, GatewayIntentBits } from 'discord.js';
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import express from 'express';
+import { startStatusUpdater, handleWelcome } from './utils/statusUpdater.js';
 
 // 🔒 Global error handlers
 process.on('unhandledRejection', console.error);
 process.on('uncaughtException', console.error);
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers // We need this for the welcome message
+  ],
 });
 
 client.cooldowns = new Collection();
@@ -111,5 +117,15 @@ async function start() {
     process.exit(1);
   }
 }
+
+client.once('ready', () => {
+    console.log(`Ready! Logged in as ${client.user.tag}`);
+    // Start the scheduled tasks once the bot is ready
+    startStatusUpdater(client);
+});
+
+client.on('guildMemberAdd', (member) => {
+    handleWelcome(member);
+});
 
 start();
