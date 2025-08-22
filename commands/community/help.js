@@ -12,8 +12,8 @@ const categoryEmojis = {
 export default {
   data: new SlashCommandBuilder()
     .setName('help')
-    .setDescription('List all available commands'),
-  
+    .setDescription('List all available commands with descriptions'),
+
   async execute(interaction) {
     const commands = interaction.client.commands;
 
@@ -22,7 +22,7 @@ export default {
     commands.forEach(cmd => {
       const cat = cmd.category || 'Other';
       if (!grouped[cat]) grouped[cat] = [];
-      grouped[cat].push(cmd.data.name);
+      grouped[cat].push({ name: cmd.data.name, description: cmd.data.description || 'No description' });
     });
 
     const embed = new EmbedBuilder()
@@ -30,13 +30,11 @@ export default {
       .setColor('#FF6A00')
       .setDescription('Here are all my commands, grouped by category:');
 
-    // Add each category to the embed
-    for (const [cat, cmdNames] of Object.entries(grouped)) {
+    // Add each category with command descriptions
+    for (const [cat, cmds] of Object.entries(grouped)) {
       const emoji = categoryEmojis[cat] || '';
-      embed.addFields({
-        name: `${emoji} ${cat} (${cmdNames.length})`,
-        value: cmdNames.map(n => `\`/${n}\``).join(', '),
-      });
+      const value = cmds.map(c => `\`/${c.name}\` — ${c.description}`).join('\n');
+      embed.addFields({ name: `${emoji} ${cat} (${cmds.length})`, value });
     }
 
     await interaction.reply({ embeds: [embed], ephemeral: true });
