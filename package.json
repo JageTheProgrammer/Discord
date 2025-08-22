@@ -1,5 +1,8 @@
 {
   "name": "status-bot",
+  "engines": {
+  "node": "18.x"
+  }
   "version": "1.0.0",
   "description": "A Discord bot for server status and community engagement.",
   "main": "index.js",
