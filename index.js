@@ -28,6 +28,8 @@ async function loadCommands() {
       const command = imported.default ?? imported;
       if (command && 'data' in command && 'execute' in command) {
         client.commands.set(command.data.name, command);
+        command.category = folder.charAt(0).toUpperCase() + folder.slice(1);
+        client.commands.set(command.data.name, command)
       } else {
         console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
       }
