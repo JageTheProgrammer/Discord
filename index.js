@@ -22,7 +22,6 @@ async function loadCommands() {
   for (const folder of commandFolders) {
     const folderPath = path.join(commandsPath, folder);
 
-    // Only process folders
     if (!readdirSync(folderPath, { withFileTypes: true }).some(f => f.isFile())) continue;
 
     const commandFiles = readdirSync(folderPath).filter(file => file.endsWith('.js'));
@@ -39,7 +38,6 @@ async function loadCommands() {
           continue;
         }
 
-        // Set category based on folder name
         command.category = folder.charAt(0).toUpperCase() + folder.slice(1);
         client.commands.set(command.data.name, command);
 
@@ -53,7 +51,7 @@ async function loadCommands() {
 
 async function loadEvents() {
   const eventsPath = path.join(__dirname, 'events');
-  const eventFiles = readdirSync(eventsPath).filter((file) => file.endsWith('.js'));
+  const eventFiles = readdirSync(eventsPath).filter(file => file.endsWith('.js'));
   for (const file of eventFiles) {
     const filePath = path.join(eventsPath, file);
     const moduleUrl = pathToFileURL(filePath).href;
@@ -78,7 +76,7 @@ async function start() {
       console.error('❌ Failed to deploy commands:', deployErr);
     }
 
-    // 2️⃣ Load commands locally for the bot
+    // 2️⃣ Load commands locally
     await loadCommands();
 
     // 3️⃣ Load events
@@ -91,9 +89,15 @@ async function start() {
     await client.login(token);
     console.log('Bot logged in successfully! ✅');
 
-    // 5️⃣ Minimal Express server to keep alive
+    // 5️⃣ Express server
     const app = express();
+
+    // Root endpoint
     app.get('/', (req, res) => res.send('🤖 Discord bot is running!'));
+
+    // ✅ Ping endpoint for Render / Uptime Robot
+    app.get('/ping', (req, res) => res.status(200).send('🤖 Bot is alive!'));
+
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => console.log(`Web server listening on port ${PORT}`));
 
