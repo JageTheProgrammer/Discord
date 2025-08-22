@@ -1,4 +1,5 @@
 // utils/statusUpdater.js
+import 'dotenv/config';
 import { EmbedBuilder } from 'discord.js';
 import axios from 'axios';
 import cron from 'node-cron';
@@ -16,67 +17,122 @@ const websiteUrls = {
   website2: 'YOUR_WEBSITE_2_URL'
 };
 
+// --- New cool UI color palette and constants ---
+const COLORS = {
+    online: '#00FF00', // Green
+    offline: '#FF0000', // Red
+    maintenance: '#FFA500', // Orange
+    info: '#00BFFF', // Deep sky blue
+    main: '#2C2F33' // Dark theme color for embeds
+};
+
+const ICONS = {
+    online: '🟢',
+    offline: '🔴',
+    maintenance: '🟠',
+    bot: '🤖'
+};
+
+// --- Updated functions with better error handling and UI ---
+
 async function getPingStatus(client) {
   const pingChannel = client.channels.cache.get(channelIds.ping);
-  if (!pingChannel) return console.log('Ping channel not found!');
-  
+  if (!pingChannel) {
+    return console.error('Ping channel not found. Please check your channel ID configuration.');
+  }
+
   const ping = client.ws.ping;
   const embed = new EmbedBuilder()
-    .setColor('Aqua')
-    .setTitle('Bot Ping Status')
-    .setDescription(`Latency: **${ping}ms**`);
+    .setColor(COLORS.info)
+    .setTitle(`${ICONS.bot} Bot Ping Status`)
+    .setDescription(`**Latency:** \`${ping}ms\``)
+    .setFooter({ text: 'Updated every 5 minutes' });
   
-  await pingChannel.messages.fetch({ limit: 1 }).then(messages => {
+  try {
+    const messages = await pingChannel.messages.fetch({ limit: 1 });
     const lastMessage = messages.first();
     if (lastMessage) {
-      lastMessage.edit({ embeds: [embed] }).catch(err => console.error('Error editing ping message:', err));
+      await lastMessage.edit({ embeds: [embed] });
     } else {
-      pingChannel.send({ embeds: [embed] }).catch(err => console.error('Error sending new ping message:', err));
+      await pingChannel.send({ embeds: [embed] });
     }
-  });
+  } catch (err) {
+    console.error(`Failed to update ping status message in channel ${pingChannel.id}:`, err);
+  }
 }
 
 async function getWebsiteStatus(client, websiteKey) {
   const channel = client.channels.cache.get(channelIds[websiteKey]);
-  if (!channel) return console.log(`${websiteKey} channel not found!`);
+  if (!channel) {
+    return console.error(`Website status channel for ${websiteKey} not found. Please check your channel ID configuration.`);
+  }
 
-  let status = 'Offline 🔴';
-  let color = 'Red';
+  let status = `Offline ${ICONS.offline}`;
+  let statusColor = COLORS.offline;
+  let statusDetails = 'Failed to connect.';
   
   try {
     const response = await axios.get(websiteUrls[websiteKey]);
     if (response.status === 200) {
-      status = 'Online 🟢';
-      color = 'Green';
+      status = `Online ${ICONS.online}`;
+      statusColor = COLORS.online;
+      statusDetails = 'Server is running smoothly.';
+    } else {
+        // Handle other status codes
+        status = `Maintenance ${ICONS.maintenance}`;
+        statusColor = COLORS.maintenance;
+        statusDetails = `Server responded with status code \`${response.status}\`.`;
     }
   } catch (error) {
-    console.error(`Error checking ${websiteKey}:`, error.message);
+    // Check for specific error types for more detailed messages
+    if (error.code === 'ECONNREFUSED') {
+        statusDetails = 'Connection refused. The server might be down or unreachable.';
+    } else if (error.code === 'ENOTFOUND') {
+        statusDetails = 'DNS lookup failed. The URL might be incorrect or the server hostname does not exist.';
+    } else {
+        statusDetails = `An unknown error occurred: \`${error.message}\`.`;
+    }
   }
 
   const embed = new EmbedBuilder()
-    .setColor(color)
-    .setTitle(`Website Status for ${websiteKey.charAt(0).toUpperCase() + websiteKey.slice(1)}`)
-    .setDescription(`Status: **${status}**`);
+    .setColor(statusColor)
+    .setTitle(`🌐 ${websiteKey.charAt(0).toUpperCase() + websiteKey.slice(1)} Status`)
+    .addFields(
+        { name: 'Status', value: status, inline: true },
+        { name: 'Details', value: statusDetails, inline: false }
+    )
+    .setFooter({ text: 'Updated every 5 minutes' });
 
-  await channel.messages.fetch({ limit: 1 }).then(messages => {
+  try {
+    const messages = await channel.messages.fetch({ limit: 1 });
     const lastMessage = messages.first();
     if (lastMessage) {
-      lastMessage.edit({ embeds: [embed] }).catch(err => console.error('Error editing website status message:', err));
+      await lastMessage.edit({ embeds: [embed] });
     } else {
-      channel.send({ embeds: [embed] }).catch(err => console.error('Error sending new website status message:', err));
+      await channel.send({ embeds: [embed] });
     }
-  });
+  } catch (err) {
+    console.error(`Failed to update website status message in channel ${channel.id}:`, err);
+  }
 }
 
 async function updateMemberCounter(client) {
   const guild = client.guilds.cache.get('YOUR_GUILD_ID');
-  if (!guild) return console.log('Guild not found!');
+  if (!guild) {
+    return console.error('Guild not found. Please check your GUILD ID configuration.');
+  }
 
   const counterChannel = guild.channels.cache.get(channelIds.memberCounter);
-  if (!counterChannel) return console.log('Member counter channel not found!');
+  if (!counterChannel) {
+    return console.error('Member counter channel not found. Please check your channel ID configuration.');
+  }
   
   const memberCount = guild.memberCount;
-  counterChannel.setName(`Members: ${memberCount}`).catch(err => console.error('Error updating member counter:', err));
+  try {
+    await counterChannel.setName(`👥 Members: ${memberCount}`);
+  } catch (err) {
+    console.error(`Failed to update member counter channel name in guild ${guild.id}:`, err);
+  }
 }
 
 export function startStatusUpdater(client) {
@@ -88,7 +144,7 @@ export function startStatusUpdater(client) {
     await getWebsiteStatus(client, 'website2');
   });
 
-  // Update member counter every 1 minute
+  // Update member counter every minute
   cron.schedule('* * * * *', async () => {
     await updateMemberCounter(client);
   });
@@ -96,12 +152,21 @@ export function startStatusUpdater(client) {
 
 export async function handleWelcome(member) {
   const welcomeChannel = member.guild.channels.cache.get(channelIds.welcomeChannel);
-  if (!welcomeChannel) return console.log('Welcome channel not found!');
+  if (!welcomeChannel) {
+    return console.error('Welcome channel not found. Please check your channel ID configuration.');
+  }
 
   const welcomeEmbed = new EmbedBuilder()
-    .setColor('Green')
-    .setTitle(`Welcome to the server, ${member.user.tag}! 🎉`)
-    .setDescription(`We're glad to have you! You are our **${member.guild.memberCount}** member.`);
+    .setColor(COLORS.online)
+    .setTitle(`🎉 Welcome to the server, ${member.user.username}!`)
+    .setDescription(`We're glad to have you! You are our **${member.guild.memberCount}** member.`)
+    .setThumbnail(member.user.displayAvatarURL())
+    .setFooter({ text: `User ID: ${member.id}` })
+    .setTimestamp();
 
-  welcomeChannel.send({ embeds: [welcomeEmbed] }).catch(err => console.error('Error sending welcome message:', err));
+  try {
+    await welcomeChannel.send({ embeds: [welcomeEmbed] });
+  } catch (err) {
+    console.error(`Failed to send welcome message to channel ${welcomeChannel.id}:`, err);
+  }
 }
