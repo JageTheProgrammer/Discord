@@ -5,16 +5,16 @@ import axios from 'axios';
 import cron from 'node-cron';
 
 const channelIds = {
-  ping: 'YOUR_PING_CHANNEL_ID',
-  website1: 'YOUR_WEBSITE_1_CHANNEL_ID',
-  website2: 'YOUR_WEBSITE_2_CHANNEL_ID',
-  memberCounter: 'YOUR_MEMBER_COUNTER_CHANNEL_ID',
-  welcomeChannel: 'YOUR_WELCOME_CHANNEL_ID'
+  ping: process.env.YOUR_PING_CHANNEL_ID,
+  website1: process.env.YOUR_WEBSITE_1_CHANNEL_ID,
+  website2: process.env.YOUR_WEBSITE_2_CHANNEL_ID,
+  memberCounter: process.env.YOUR_MEMBER_COUNTER_CHANNEL_ID,
+  welcomeChannel: process.env.YOUR_WELCOME_CHANNEL_ID
 };
 
 const websiteUrls = {
-  website1: 'YOUR_WEBSITE_1_URL',
-  website2: 'YOUR_WEBSITE_2_URL'
+  website1: process.env.YOUR_WEBSITE_1_URL,
+  website2: process.env.YOUR_WEBSITE_2_URL
 };
 
 // --- New cool UI color palette and constants ---
@@ -117,7 +117,7 @@ async function getWebsiteStatus(client, websiteKey) {
 }
 
 async function updateMemberCounter(client) {
-  const guild = client.guilds.cache.get('1408059259844952167');
+  const guild = client.guilds.cache.get(process.env.GUILD_ID);
   if (!guild) {
     return console.error('Guild not found. Please check your GUILD ID configuration.');
   }
