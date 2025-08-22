@@ -5,6 +5,11 @@ import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import express from 'express';
 
+// 🔒 Global error handlers
+process.on('unhandledRejection', console.error);
+process.on('uncaughtException', console.error);
+
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -98,7 +103,7 @@ async function start() {
     // ✅ Ping endpoint for Render / Uptime Robot
     app.get('/ping', (req, res) => res.status(200).send('🤖 Bot is alive!'));
 
-    const PORT = process.env.PORT || 3000;
+    const PORT = process.env.PORT || 8080;
     app.listen(PORT, () => console.log(`Web server listening on port ${PORT}`));
 
   } catch (err) {
