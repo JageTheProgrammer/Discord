@@ -38,24 +38,29 @@ export default async function deployCommands() {
 
   const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
 
-  try {
-    console.log(`🛠️ Refreshing ${commands.length} application (/) commands...`);
+  // ... (previous code)
 
-    // Delete all existing global commands
-    const currentCommands = await rest.get(
-      Routes.applicationCommands(process.env.CLIENT_ID)
-    );
+try {
+  console.log(`🛠️ Refreshing ${commands.length} application (/) commands...`);
 
-    for (const cmd of currentCommands) {
-      await rest.delete(Routes.applicationCommand(process.env.CLIENT_ID, cmd.id));
-      console.log(`❌ Deleted old command: ${cmd.name}`);
-    }
+  // Delete all existing global commands
+  const currentCommands = await rest.get(
+    Routes.applicationCommands(process.env.CLIENT_ID)
+  );
 
-    // Register new commands
-    await rest.put(
-      Routes.applicationCommands(process.env.CLIENT_ID),
-      { body: commands }
-    );
+  for (const cmd of currentCommands) {
+    await rest.delete(Routes.applicationCommand(process.env.CLIENT_ID, cmd.id));
+    console.log(`❌ Deleted old command: ${cmd.name}`);
+  }
+
+  // Define the deployment route based on the environment
+  const isDev = process.env.NODE_ENV !== 'production' && process.env.GUILD_ID;
+  const route = isDev
+    ? Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID)
+    : Routes.applicationCommands(process.env.CLIENT_ID);
+
+  // Register new commands to either the test guild or globally
+  await rest.put(route, { body: commands });
 
     // Log commands by category with emojis
     const grouped = {};
