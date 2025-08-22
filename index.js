@@ -18,20 +18,34 @@ client.commands = new Collection();
 async function loadCommands() {
   const commandsPath = path.join(__dirname, 'commands');
   const commandFolders = readdirSync(commandsPath);
+
   for (const folder of commandFolders) {
     const folderPath = path.join(commandsPath, folder);
-    const commandFiles = readdirSync(folderPath).filter((file) => file.endsWith('.js'));
+
+    // Only process folders
+    if (!readdirSync(folderPath, { withFileTypes: true }).some(f => f.isFile())) continue;
+
+    const commandFiles = readdirSync(folderPath).filter(file => file.endsWith('.js'));
+
     for (const file of commandFiles) {
-      const filePath = path.join(folderPath, file);
-      const moduleUrl = pathToFileURL(filePath).href;
-      const imported = await import(moduleUrl);
-      const command = imported.default ?? imported;
-      if (command && 'data' in command && 'execute' in command) {
-        client.commands.set(command.data.name, command);
+      try {
+        const filePath = path.join(folderPath, file);
+        const moduleUrl = pathToFileURL(filePath).href;
+        const imported = await import(moduleUrl);
+        const command = imported.default ?? imported;
+
+        if (!command?.data || !command?.execute) {
+          console.log(`[WARNING] Command at ${filePath} is missing required "data" or "execute". Skipping.`);
+          continue;
+        }
+
+        // Set category based on folder name
         command.category = folder.charAt(0).toUpperCase() + folder.slice(1);
-        client.commands.set(command.data.name, command)
-      } else {
-        console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+        client.commands.set(command.data.name, command);
+
+        console.log(`✅ Loaded command: ${command.data.name} (${command.category})`);
+      } catch (err) {
+        console.error(`[ERROR] Failed to load command ${file}:`, err);
       }
     }
   }
