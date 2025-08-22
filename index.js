@@ -1,10 +1,9 @@
 import 'dotenv/config';
 import { Client, Collection, GatewayIntentBits } from 'discord.js';
-import mongoose from 'mongoose';
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
-import express from 'express'; // 👈 added
+import express from 'express';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,15 +56,6 @@ async function start() {
     await loadCommands();
     await loadEvents();
 
-    const mongoDbUri = process.env.MONGODB_URI;
-    if (mongoDbUri) {
-      // ⚠️ removed deprecated options
-      await mongoose.connect(mongoDbUri);
-      console.log('Connected to MongoDB!');
-    } else {
-      console.warn('MONGODB_URI not set. Skipping MongoDB connection.');
-    }
-
     const token = process.env.BOT_TOKEN;
     if (!token) {
       console.error('BOT_TOKEN is not set. Please configure your environment variables.');
@@ -75,13 +65,9 @@ async function start() {
     await client.login(token);
     console.log('Bot logged in successfully! ✅');
 
-    // 👇 Minimal Express server so Render detects a port
+    // Minimal Express server so Render keeps it alive
     const app = express();
-
-    app.get('/', (req, res) => {
-      res.send('🤖 Discord bot is running!');
-    });
-
+    app.get('/', (req, res) => res.send('🤖 Discord bot is running!'));
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => console.log(`Web server listening on port ${PORT}`));
   } catch (err) {
