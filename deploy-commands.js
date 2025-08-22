@@ -29,12 +29,22 @@ const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
 try {
   console.log(`Started refreshing ${commands.length} application (/) commands.`);
 
+  // Delete all existing global commands first
+  const currentCommands = await rest.get(
+    Routes.applicationCommands(process.env.CLIENT_ID)
+  );
+  for (const cmd of currentCommands) {
+    await rest.delete(Routes.applicationCommand(process.env.CLIENT_ID, cmd.id));
+    console.log(`Deleted old command: ${cmd.name}`);
+  }
+
+  // Register the new commands
   await rest.put(
-    Routes.applicationCommands(process.env.CLIENT_ID), // Global commands
+    Routes.applicationCommands(process.env.CLIENT_ID),
     { body: commands }
   );
 
-  console.log(`Successfully reloaded application (/) commands.`);
+  console.log(`✅ Successfully registered ${commands.length} commands.`);
 } catch (error) {
   console.error(error);
 }
