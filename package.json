@@ -1,12 +1,12 @@
 {
   "name": "status-bot",
-  "engines": {
-  "node": "18.x"
-  }
   "version": "1.0.0",
   "description": "A Discord bot for server status and community engagement.",
   "main": "index.js",
   "type": "module",
+  "engines": {
+    "node": "18.x"
+  },
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon --watch . --ext js,json --exec \"node index.js\"",
