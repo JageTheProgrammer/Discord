@@ -117,7 +117,7 @@ async function getWebsiteStatus(client, websiteKey) {
 }
 
 async function updateMemberCounter(client) {
-  const guild = client.guilds.cache.get('YOUR_GUILD_ID');
+  const guild = client.guilds.cache.get('1408059259844952167');
   if (!guild) {
     return console.error('Guild not found. Please check your GUILD ID configuration.');
   }
