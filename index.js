@@ -69,23 +69,34 @@ async function loadEvents() {
 
 async function start() {
   try {
+    // 1️⃣ Deploy commands at startup
+    try {
+      const deployModule = await import('./deploy-commands.js');
+      if (deployModule.default) await deployModule.default();
+      console.log('✅ Commands deployed successfully.');
+    } catch (deployErr) {
+      console.error('❌ Failed to deploy commands:', deployErr);
+    }
+
+    // 2️⃣ Load commands locally for the bot
     await loadCommands();
+
+    // 3️⃣ Load events
     await loadEvents();
 
+    // 4️⃣ Login bot
     const token = process.env.BOT_TOKEN;
-    if (!token) {
-      console.error('BOT_TOKEN is not set. Please configure your environment variables.');
-      process.exit(1);
-    }
+    if (!token) throw new Error('BOT_TOKEN is not set.');
 
     await client.login(token);
     console.log('Bot logged in successfully! ✅');
 
-    // Minimal Express server so Render keeps it alive
+    // 5️⃣ Minimal Express server to keep alive
     const app = express();
     app.get('/', (req, res) => res.send('🤖 Discord bot is running!'));
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => console.log(`Web server listening on port ${PORT}`));
+
   } catch (err) {
     console.error('Failed to start bot:', err);
     process.exit(1);
