@@ -4,6 +4,15 @@ import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+const categoryEmojis = {
+  Fun: '🎉',
+  Moderation: '🔨',
+  Community: '🌐',
+  Dev: '💻',
+  Infra: '🛠️',
+  Other: '📦',
+};
+
 const commands = [];
 const commandsPath = path.join(process.cwd(), 'commands');
 const commandFolders = readdirSync(commandsPath);
@@ -18,33 +27,51 @@ for (const folder of commandFolders) {
     const imported = await import(moduleUrl);
     const command = imported.default ?? imported;
 
-    if (command?.data) {
-      commands.push(command.data.toJSON());
-    }
+    if (!command?.data) continue;
+
+    // Add category property to command
+    command.category = folder.charAt(0).toUpperCase() + folder.slice(1);
+    commands.push(command.data.toJSON());
   }
 }
 
 const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
 
 try {
-  console.log(`Started refreshing ${commands.length} application (/) commands.`);
+  console.log(`🛠️ Refreshing ${commands.length} application (/) commands...`);
 
-  // Delete all existing global commands first
+  // Delete all existing global commands
   const currentCommands = await rest.get(
     Routes.applicationCommands(process.env.CLIENT_ID)
   );
+
   for (const cmd of currentCommands) {
     await rest.delete(Routes.applicationCommand(process.env.CLIENT_ID, cmd.id));
-    console.log(`Deleted old command: ${cmd.name}`);
+    console.log(`❌ Deleted old command: ${cmd.name}`);
   }
 
-  // Register the new commands
+  // Register new commands
   await rest.put(
     Routes.applicationCommands(process.env.CLIENT_ID),
     { body: commands }
   );
 
-  console.log(`✅ Successfully registered ${commands.length} commands.`);
+  // Log commands by category with emojis
+  const grouped = {};
+  commands.forEach(c => {
+    const cat = c.category || 'Other';
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(c.name);
+  });
+
+  console.log(`✅ Registered commands:`);
+
+  for (const [cat, cmdNames] of Object.entries(grouped)) {
+    const emoji = categoryEmojis[cat] || '';
+    console.log(`${emoji} ${cat} (${cmdNames.length}): ${cmdNames.join(', ')}`);
+  }
+
+  console.log(`🎉 All commands successfully deployed!`);
 } catch (error) {
   console.error(error);
 }
