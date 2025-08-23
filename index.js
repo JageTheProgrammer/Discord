@@ -4,7 +4,6 @@ import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import express from 'express';
-import { startStatusUpdater, handleWelcome } from './utils/statusUpdater.js';
 
 // 🔒 Global error handlers
 process.on('unhandledRejection', console.error);
@@ -98,6 +97,16 @@ async function start() {
 
     app.get('/', (req, res) => res.send('🤖 Discord bot is running!'));
     app.get('/ping', (req, res) => res.status(200).send('🤖 Bot is alive!'));
+    app.get('/healthz', (req, res) => {
+      res.json({
+        ok: true,
+        uptime: process.uptime(),
+        wsPing: client.ws.ping,
+        guilds: client.guilds.cache.size,
+        memoryRss: process.memoryUsage().rss,
+        node: process.version,
+      });
+    });
 
     const PORT = process.env.PORT || 8080;
     app.listen(PORT, () => console.log(`🌐 Web server listening on port ${PORT}`));
@@ -108,13 +117,6 @@ async function start() {
   }
 }
 
-client.once('ready', () => {
-    console.log(`✅ Ready! Logged in as ${client.user.tag}`);
-    startStatusUpdater(client);
-});
-
-client.on('guildMemberAdd', (member) => {
-    handleWelcome(member);
-});
+// All lifecycle logic is handled in events/*.js
 
 start();

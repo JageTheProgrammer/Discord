@@ -1,7 +1,7 @@
 // utils/statusUpdater.js
 import { EmbedBuilder } from 'discord.js';
-import axios from 'axios';
 import cron from 'node-cron';
+import { http } from './http.js';
 
 const channelIds = {
   ping: process.env.YOUR_PING_CHANNEL_ID,
@@ -72,18 +72,24 @@ async function getWebsiteStatus(client, websiteKey) {
   let statusDetails = 'Failed to connect.';
 
   try {
-    const response = await axios.get(websiteUrl);
-    if (response.status === 200) {
+    const response = await http.get(websiteUrl, { timeout: 7000, validateStatus: () => true });
+    if (response.status >= 200 && response.status < 300) {
       status = `Online ${ICONS.online}`;
       statusColor = COLORS.online;
       statusDetails = 'Server is running smoothly.';
-    } else {
+    } else if (response.status >= 500) {
       status = `Maintenance ${ICONS.maintenance}`;
       statusColor = COLORS.maintenance;
-      statusDetails = `Server responded with status code \`${response.status}\`.`;
+      statusDetails = `Server error: \`${response.status}\``;
+    } else {
+      status = `Offline ${ICONS.offline}`;
+      statusColor = COLORS.offline;
+      statusDetails = `Unexpected status: \`${response.status}\``;
     }
   } catch (error) {
-    if (error.code === 'ECONNREFUSED') {
+    if (error.code === 'ECONNABORTED') {
+      statusDetails = 'Request timed out.';
+    } else if (error.code === 'ECONNREFUSED') {
       statusDetails = 'Connection refused. The server might be down or unreachable.';
     } else if (error.code === 'ENOTFOUND') {
       statusDetails = 'DNS lookup failed. The URL might be incorrect or the server hostname does not exist.';

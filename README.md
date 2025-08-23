@@ -1,46 +1,72 @@
-## Discord Bot - SSH Hosting Guide
+## Discord Status & Community Bot
 
-1) Requirements
-- Node.js 18.x (recommended), npm
-- A Linux server with SSH access
+A modern Discord bot for status monitoring, utilities, and community features. Built on `discord.js` v14 with ESM modules and an Express keep-alive server.
 
-2) Setup
+### Features
+- **Status updater**: periodic ping, website checks, member counter, and welcome embeds
+- **Reminders**: background reminders processed every ~15s
+- **Fun & community**: memes, quotes, ranks, polls, trivia, help, roles
+- **Dev tools**: GitHub lookups, npm/pypi, regex test, IP/DNS/SSL, etc.
+- **New commands**:
+  - `/uptime` – process uptime, memory, and WS ping
+  - `/invite` – bot invite link
+  - `/shorten <url>` – shortens URLs via is.gd
+  - `/qr <text>` – generates a PNG QR code
+- **Health endpoints**: `GET /`, `/ping`, `/healthz`
+
+### Requirements
+- Node.js 18+ and npm
+- Discord application with Bot + applications.commands enabled
+- BOT token and CLIENT_ID
+
+### Quick Start
 ```bash
 git clone <your-repo> bot && cd bot
 cp .env.example .env
-# edit .env with your BOT_TOKEN and CLIENT_ID
+# Edit .env with: BOT_TOKEN, CLIENT_ID, GUILD_ID, channel IDs and website URLs
 npm install --no-audit --no-fund
+node deploy-commands.js
+npm run start
 ```
 
-3) Deploy slash commands
+### Alwaysdata.com SSH Hosting
+- SSH into your account: `ssh <user>@ssh-alwaysdata.com`
+- Ensure Node 18+: `node -v` (use `nvm` if needed)
+- Deploy:
 ```bash
-export BOT_TOKEN=your_token
-export CLIENT_ID=your_client_id
+cd ~/www   # or your chosen directory
+git clone <your-repo> bot && cd bot
+cp .env.example .env && nano .env  # set tokens, IDs, URLs
+npm install --no-audit --no-fund
 node deploy-commands.js
 ```
-
-4) Run the bot
+- Start in background using PM2 (recommended):
 ```bash
-npm run start
-# or with PM2 (recommended for SSH hosting)
 npm install -g pm2
 pm2 start ecosystem.config.js
 pm2 save
 pm2 status
-```
-
-5) Keep-alive web endpoint
-- The bot exposes GET / and /ping on PORT (default 8080). Configure your host/uptime monitor to ping /ping.
-
-6) Logs
-```bash
 pm2 logs discord-bot
 ```
+- Web access: configure an Alwaysdata HTTP site pointing to your Node.js app (port is managed by Alwaysdata). The bot also exposes `/healthz` for monitoring.
 
-7) Updating
-```bash
-git pull
-npm install --no-audit --no-fund
-node deploy-commands.js
-pm2 restart discord-bot
-```
+### Environment (.env)
+See `.env.example`. Minimum required:
+- `BOT_TOKEN`, `CLIENT_ID`, `GUILD_ID`
+- `YOUR_PING_CHANNEL_ID`, `YOUR_WEBSITE_1_CHANNEL_ID`, `YOUR_WEBSITE_2_CHANNEL_ID`, `YOUR_MEMBER_COUNTER_CHANNEL_ID`, `YOUR_WELCOME_CHANNEL_ID`
+- `YOUR_WEBSITE_1_URL`, `YOUR_WEBSITE_2_URL`
+- Optional: `BOT_ACTIVITY`, `PORT`
+
+### Scripts
+- `npm run start` – start the bot
+- `npm run dev` – auto-reload with nodemon
+- `npm run deploy-commands` – register slash commands globally
+
+### Troubleshooting
+- Commands not visible: run `node deploy-commands.js`, ensure `CLIENT_ID` and `BOT_TOKEN` are correct
+- Missing intents: enable Message Content and Server Members intents in the Discord Developer Portal
+- Welcome/status channels not updating: verify channel IDs and bot permissions
+- Alwaysdata port: the Express server provides keep-alive and health endpoints; follow Alwaysdata Node app guide to bind correctly
+
+### License
+MIT

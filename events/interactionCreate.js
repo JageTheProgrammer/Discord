@@ -4,19 +4,20 @@ export default {
   name: 'interactionCreate',
   async execute(interaction) {
     const handleCooldown = (command, userId) => {
-      if (!interaction.client.cooldowns.has(command.name)) {
-        interaction.client.cooldowns.set(command.name, new Collection());
+      const commandName = command?.data?.name || interaction.commandName || 'unknown';
+      if (!interaction.client.cooldowns.has(commandName)) {
+        interaction.client.cooldowns.set(commandName, new Collection());
       }
 
       const now = Date.now();
-      const timestamps = interaction.client.cooldowns.get(command.name);
+      const timestamps = interaction.client.cooldowns.get(commandName);
       const cooldownAmount = (command.cooldown || 3) * 1000;
 
       if (timestamps.has(userId)) {
         const expirationTime = timestamps.get(userId) + cooldownAmount;
         if (now < expirationTime) {
           const timeLeft = (expirationTime - now) / 1000;
-          return `⏳ Please wait ${timeLeft.toFixed(1)}s before using \`${command.name}\` again.`;
+          return `⏳ Please wait ${timeLeft.toFixed(1)}s before using \`${commandName}\` again.`;
         }
       }
 
