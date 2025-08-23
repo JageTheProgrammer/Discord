@@ -1,5 +1,4 @@
 // utils/statusUpdater.js
-import 'dotenv/config';
 import { EmbedBuilder } from 'discord.js';
 import axios from 'axios';
 import cron from 'node-cron';
