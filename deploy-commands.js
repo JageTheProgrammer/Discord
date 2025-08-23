@@ -41,6 +41,10 @@ export default async function deployCommands() {
 
   const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
 
+  // Verbose logging to help diagnose hangs
+  rest.on?.('rateLimited', (info) => console.warn('⚠️ Rate limited:', info));
+  rest.on?.('invalidRequestWarning', (info) => console.warn('⚠️ Invalid request warning:', info));
+
   try {
     const guildId = process.env.DEPLOY_GUILD_ID;
     const scope = guildId ? `guild ${guildId}` : 'global';
@@ -50,8 +54,16 @@ export default async function deployCommands() {
       ? Routes.applicationGuildCommands(process.env.CLIENT_ID, guildId)
       : Routes.applicationCommands(process.env.CLIENT_ID);
 
+    // Abort if Discord API is unreachable for too long
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+      controller.abort();
+      console.error('❌ Timed out waiting for Discord API. Check network/DNS connectivity.');
+    }, 30000);
+
     // Atomic replace of commands (no manual delete loop)
-    const result = await rest.put(route, { body: commands });
+    const result = await rest.put(route, { body: commands, signal: controller.signal });
+    clearTimeout(timeout);
 
     // Group by category
     const grouped = {};
