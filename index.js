@@ -1,4 +1,3 @@
-// index.js
 import 'dotenv/config';
 import { Client, Collection, GatewayIntentBits } from 'discord.js';
 import { readdirSync } from 'node:fs';
@@ -86,32 +85,31 @@ async function start() {
 
     // 4️⃣ Login bot
     const token = process.env.BOT_TOKEN;
-    if (!token) throw new Error('BOT_TOKEN is not set.');
+    if (!token) {
+      console.error('❌ BOT_TOKEN is not set in environment variables.');
+      process.exit(1);
+    }
 
     await client.login(token);
-    console.log('Bot logged in successfully! ✅');
+    console.log('✅ Bot logged in successfully!');
 
     // 5️⃣ Express server
     const app = express();
 
-    // Root endpoint
     app.get('/', (req, res) => res.send('🤖 Discord bot is running!'));
-
-    // ✅ Ping endpoint for Render / Uptime Robot
     app.get('/ping', (req, res) => res.status(200).send('🤖 Bot is alive!'));
 
     const PORT = process.env.PORT || 8080;
-    app.listen(PORT, () => console.log(`Web server listening on port ${PORT}`));
+    app.listen(PORT, () => console.log(`🌐 Web server listening on port ${PORT}`));
 
   } catch (err) {
-    console.error('Failed to start bot:', err);
+    console.error('❌ Failed to start bot:', err);
     process.exit(1);
   }
 }
 
 client.once('ready', () => {
-    console.log(`Ready! Logged in as ${client.user.tag}`);
-    // Start the scheduled tasks once the bot is ready
+    console.log(`✅ Ready! Logged in as ${client.user.tag}`);
     startStatusUpdater(client);
 });
 
