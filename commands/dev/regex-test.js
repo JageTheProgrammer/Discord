@@ -3,11 +3,23 @@ import { createEmbed, UI_COLORS } from '../../utils/ui.js';
 
 export default {
 	data: new SlashCommandBuilder()
-		.setName('regex-test')
-		.setDescription('Test a regex against input text')
-		.addStringOption(o => o.setName('pattern').setDescription('Regex pattern, without slashes').setRequired(true))
-		.addStringOption(o => o.setName('flags').setDescription('Regex flags, e.g. gim').setRequired(false))
-		.addStringOption(o => o.setName('text').setDescription('Text to test').setRequired(true)),
+  .setName('regex-test')
+  .setDescription('Test a regex against input text')
+  .addStringOption(o =>
+    o.setName('pattern')
+     .setDescription('Regex pattern, without slashes')
+     .setRequired(true)
+  )
+  .addStringOption(o =>
+    o.setName('text')
+     .setDescription('Text to test')
+     .setRequired(true)
+  )
+  .addStringOption(o =>
+    o.setName('flags')
+     .setDescription('Regex flags, e.g. gim')
+     .setRequired(false)
+  )
 	async execute(interaction) {
 		const pattern = interaction.options.getString('pattern');
 		const flags = interaction.options.getString('flags') || '';
