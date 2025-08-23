@@ -10,19 +10,22 @@ const categoryEmojis = {
   Community: '🌐',
   Dev: '💻',
   Infra: '🛠️',
-  Other: '📦',
 };
+
+const ALLOWED_FOLDERS = ['community', 'dev', 'fun', 'infra', 'moderation'];
 
 export default async function deployCommands() {
   const commands = [];
   const categorized = [];
 
   const commandsPath = path.join(process.cwd(), 'commands');
-  const commandFolders = readdirSync(commandsPath);
+  const commandFolders = readdirSync(commandsPath).filter(f =>
+    ALLOWED_FOLDERS.includes(f.toLowerCase())
+  );
 
   for (const folder of commandFolders) {
     const folderPath = path.join(commandsPath, folder);
-    const commandFiles = readdirSync(folderPath).filter(file => file.endsWith('.js'));
+    const commandFiles = readdirSync(folderPath).filter(f => f.endsWith('.js'));
 
     for (const file of commandFiles) {
       const filePath = path.join(folderPath, file);
@@ -30,9 +33,16 @@ export default async function deployCommands() {
       const imported = await import(moduleUrl);
       const command = imported.default ?? imported;
 
-      if (!command?.data) continue;
+      if (!command?.data || !command?.execute) continue;
 
       const category = folder.charAt(0).toUpperCase() + folder.slice(1);
+
+      // prevent duplicate command names
+      if (commands.some(c => c.name === command.data.name)) {
+        console.log(`⚠️ Skipping duplicate: ${command.data.name}`);
+        continue;
+      }
+
       categorized.push({ ...command, category });
       commands.push(command.data.toJSON());
     }
@@ -41,22 +51,14 @@ export default async function deployCommands() {
   const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
 
   try {
-    console.log(`🛠️ Refreshing ${commands.length} global (/) commands...`);
+    console.log(`🛠️ Deploying ${commands.length} global (/) commands...`);
 
-    // Always global
     const route = Routes.applicationCommands(process.env.CLIENT_ID);
 
-    // Delete old commands
-    const currentCommands = await rest.get(route);
-    for (const cmd of currentCommands) {
-      await rest.delete(Routes.applicationCommand(process.env.CLIENT_ID, cmd.id));
-      console.log(`❌ Deleted old command: ${cmd.name}`);
-    }
-
-    // Deploy new ones
+    // overwrite everything in one go → no leftovers
     await rest.put(route, { body: commands });
 
-    // Group by category
+    // log grouped by category
     const grouped = {};
     categorized.forEach(c => {
       const cat = c.category || 'Other';
