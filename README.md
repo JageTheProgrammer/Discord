@@ -24,7 +24,7 @@ node deploy-commands.js
 npm run start
 # or with PM2 (recommended for SSH hosting)
 npm install -g pm2
-pm2 start ecosystem.config.js
+pm2 start ecosystem.config.cjs
 pm2 save
 pm2 status
 ```
