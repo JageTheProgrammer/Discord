@@ -33,9 +33,34 @@ export default async function deployCommands() {
       if (!command?.data) continue;
 
       const category = folder.charAt(0).toUpperCase() + folder.slice(1);
-      categorized.push({ ...command, category });
-      commands.push(command.data.toJSON());
+      const json = command.data.toJSON();
+      categorized.push({ ...command, category, _filePath: filePath, _json: json });
+      commands.push(json);
     }
+  }
+
+  // Validate required-before-optional order for options
+  const violations = [];
+  for (const cmd of categorized) {
+    const opts = Array.isArray(cmd._json?.options) ? cmd._json.options : [];
+    let seenOptional = false;
+    for (let i = 0; i < opts.length; i++) {
+      const o = opts[i];
+      const isRequired = Boolean(o.required);
+      if (!isRequired) seenOptional = true;
+      if (seenOptional && isRequired) {
+        violations.push({ name: cmd._json.name, index: i, file: cmd._filePath, option: o.name });
+        break;
+      }
+    }
+  }
+
+  if (violations.length) {
+    console.error('❌ Command option order violations detected (required must come before optional):');
+    for (const v of violations) {
+      console.error(`- ${v.name} (${v.file}) option #${v.index + 1}: "${v.option}" is required but comes after an optional option.`);
+    }
+    process.exit(1);
   }
 
   const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
