@@ -75,3 +75,8 @@ export default async function deployCommands() {
     console.error('❌ Error deploying commands:', error);
   }
 }
+
+// Allow running via `node deploy-commands.js`
+if (import.meta.url === `file://${process.argv[1]}`) {
+  deployCommands();
+}
