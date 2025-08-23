@@ -11,7 +11,7 @@ import { startStatusUpdater, handleWelcome } from './utils/statusUpdater.js';
 process.on('unhandledRejection', console.error);
 process.on('uncaughtException', console.error);
 
-const token = process.env.DISCORD_TOKEN;
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
