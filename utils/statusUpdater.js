@@ -96,8 +96,10 @@ async function getWebsiteStatus(client, websiteKey) {
   const embed = new EmbedBuilder()
     .setColor(statusColor)
     .setTitle(`🌐 ${websiteKey.charAt(0).toUpperCase() + websiteKey.slice(1)} Status`)
+      .setURL(websiteUrl)
     .addFields(
         { name: 'Status', value: status, inline: true },
+        { name: 'URL', value: '[Visit Website]($websiteUrl)', inline: true },
         { name: 'Details', value: statusDetails, inline: false }
     )
     .setFooter({ text: 'Updated every 5 minutes' });
