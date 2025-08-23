@@ -1,4 +1,3 @@
-// deploy-commands.js
 import 'dotenv/config';
 import { REST, Routes } from 'discord.js';
 import { readdirSync } from 'node:fs';
@@ -16,6 +15,8 @@ const categoryEmojis = {
 
 export default async function deployCommands() {
   const commands = [];
+  const categorized = [];
+
   const commandsPath = path.join(process.cwd(), 'commands');
   const commandFolders = readdirSync(commandsPath);
 
@@ -31,43 +32,39 @@ export default async function deployCommands() {
 
       if (!command?.data) continue;
 
-      command.category = folder.charAt(0).toUpperCase() + folder.slice(1);
+      const category = folder.charAt(0).toUpperCase() + folder.slice(1);
+      categorized.push({ ...command, category });
       commands.push(command.data.toJSON());
     }
   }
 
   const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
 
-  // ... (previous code)
+  try {
+    console.log(`🛠️ Refreshing ${commands.length} application (/) commands...`);
 
-try {
-  console.log(`🛠️ Refreshing ${commands.length} application (/) commands...`);
+    // Pick scope
+    const isDev = process.env.NODE_ENV !== 'production' && process.env.GUILD_ID;
+    const route = isDev
+      ? Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID)
+      : Routes.applicationCommands(process.env.CLIENT_ID);
 
-  // Delete all existing global commands
-  const currentCommands = await rest.get(
-    Routes.applicationCommands(process.env.CLIENT_ID)
-  );
+    // Delete old commands
+    const currentCommands = await rest.get(route);
+    for (const cmd of currentCommands) {
+      await rest.delete(route + `/${cmd.id}`);
+      console.log(`❌ Deleted old command: ${cmd.name}`);
+    }
 
-  for (const cmd of currentCommands) {
-    await rest.delete(Routes.applicationCommand(process.env.CLIENT_ID, cmd.id));
-    console.log(`❌ Deleted old command: ${cmd.name}`);
-  }
+    // Deploy new ones
+    await rest.put(route, { body: commands });
 
-  // Define the deployment route based on the environment
-  const isDev = process.env.NODE_ENV !== 'production' && process.env.GUILD_ID;
-  const route = isDev
-    ? Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID)
-    : Routes.applicationCommands(process.env.CLIENT_ID);
-
-  // Register new commands to either the test guild or globally
-  await rest.put(route, { body: commands });
-
-    // Log commands by category with emojis
+    // Group by category
     const grouped = {};
-    commands.forEach(c => {
+    categorized.forEach(c => {
       const cat = c.category || 'Other';
       if (!grouped[cat]) grouped[cat] = [];
-      grouped[cat].push(c.name);
+      grouped[cat].push(c.data.name);
     });
 
     console.log(`✅ Registered commands:`);
