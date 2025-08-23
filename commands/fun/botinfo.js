@@ -1,6 +1,6 @@
 // commands/utils/botinfo.js
 import { SlashCommandBuilder } from 'discord.js';
-import pkg from '../../package.json' assert { type: 'json' };
+import pkg from '../../package.json' with { type: 'json' };
 
 export default {
   data: new SlashCommandBuilder()
