@@ -37,12 +37,39 @@ if (!token || !clientId) {
 
 const rest = new REST({ version: '10' }).setToken(token);
 
+// Sort required options before optional options, recursively for subcommands and groups
+function sortOptions(options) {
+	if (!Array.isArray(options)) return options;
+	const sorted = [...options].sort((a, b) => {
+		const aReq = Boolean(a?.required);
+		const bReq = Boolean(b?.required);
+		return (aReq === bReq) ? 0 : (aReq ? -1 : 1);
+	});
+	for (const opt of sorted) {
+		// 1 = Subcommand, 2 = Subcommand Group
+		if ((opt?.type === 1 || opt?.type === 2) && Array.isArray(opt.options)) {
+			opt.options = sortOptions(opt.options);
+		}
+	}
+	return sorted;
+}
+
 try {
 	console.log(`Started refreshing ${commands.length} application (/) commands.`);
+
+	// Normalize commands with sorted options to satisfy API validation
+	const normalized = commands.map((c) => {
+		const copy = JSON.parse(JSON.stringify(c));
+		if (Array.isArray(copy.options)) {
+			copy.options = sortOptions(copy.options);
+		}
+		return copy;
+	});
+
 	const route = guildId
 		? Routes.applicationGuildCommands(clientId, guildId)
 		: Routes.applicationCommands(clientId);
-	const data = await rest.put(route, { body: commands });
+	const data = await rest.put(route, { body: normalized });
 	console.log(`Successfully reloaded ${Array.isArray(data) ? data.length : 0} application (/) commands.`);
 } catch (error) {
 	console.error(error);
