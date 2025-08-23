@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "engines": {
-    "node": "18.x"
+    "node": ">=18"
   },
   "scripts": {
     "start": "node index.js",
@@ -25,7 +25,8 @@
     "discord.js": "^14.22.0",
     "dotenv": "^16.3.1",
     "express": "^4.19.2",
-    "node-cron": "^3.0.3"
+    "node-cron": "^3.0.3",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
