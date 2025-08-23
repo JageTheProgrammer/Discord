@@ -41,18 +41,15 @@ export default async function deployCommands() {
   const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
 
   try {
-    console.log(`🛠️ Refreshing ${commands.length} application (/) commands...`);
+    console.log(`🛠️ Refreshing ${commands.length} global (/) commands...`);
 
-    // Pick scope
-    const isDev = process.env.NODE_ENV !== 'production' && process.env.GUILD_ID;
-    const route = isDev
-      ? Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID)
-      : Routes.applicationCommands(process.env.CLIENT_ID);
+    // Always global
+    const route = Routes.applicationCommands(process.env.CLIENT_ID);
 
     // Delete old commands
     const currentCommands = await rest.get(route);
     for (const cmd of currentCommands) {
-      await rest.delete(route + `/${cmd.id}`);
+      await rest.delete(Routes.applicationCommand(process.env.CLIENT_ID, cmd.id));
       console.log(`❌ Deleted old command: ${cmd.name}`);
     }
 
@@ -73,7 +70,7 @@ export default async function deployCommands() {
       console.log(`${emoji} ${cat} (${cmdNames.length}): ${cmdNames.join(', ')}`);
     }
 
-    console.log(`🎉 All commands successfully deployed!`);
+    console.log(`🎉 All commands successfully deployed globally!`);
   } catch (error) {
     console.error('❌ Error deploying commands:', error);
   }
