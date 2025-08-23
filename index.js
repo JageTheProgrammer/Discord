@@ -78,15 +78,6 @@ async function loadEvents() {
 
 async function start() {
   try {
-    // 1️⃣ Deploy commands at startup
-    try {
-      const deployModule = await import('./deploy-commands.js');
-      if (deployModule.default) await deployModule.default();
-      console.log('✅ Commands deployed successfully.');
-    } catch (deployErr) {
-      console.error('❌ Failed to deploy commands:', deployErr);
-    }
-
     // 2️⃣ Load commands locally
     await loadCommands();
 
