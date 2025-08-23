@@ -1,7 +1,8 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder } from 'discord.js';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createEmbed, UI_COLORS } from '../../utils/ui.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,11 +41,11 @@ export default {
         }
       }
 
-      const embed = new EmbedBuilder()
-        .setTitle('Server Leaderboard')
-        .setDescription(leaderboardString || 'No users on the leaderboard.')
-        .setColor('#0099ff')
-        .setTimestamp();
+      const embed = createEmbed({
+        title: '🏆 Server Leaderboard',
+        description: leaderboardString || 'No users on the leaderboard.',
+        color: UI_COLORS.primary,
+      });
 
       await interaction.reply({ embeds: [embed] });
     } catch (error) {

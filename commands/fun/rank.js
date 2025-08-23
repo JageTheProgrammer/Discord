@@ -3,6 +3,7 @@ import { SlashCommandBuilder } from 'discord.js';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createEmbed, UI_COLORS } from '../../utils/ui.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,8 +31,16 @@ export default {
     const xp = ranks[userId].xp;
     const level = ranks[userId].level;
 
+    const embed = createEmbed({
+      title: `📈 Your Rank`,
+      description: `Level: **${level}**\nXP: **${xp}**`,
+      color: UI_COLORS.info,
+      thumbnail: interaction.user.displayAvatarURL(),
+      footer: `User ID: ${interaction.user.id}`,
+    });
+
     try {
-      await interaction.reply({ content: `Your rank: Level ${level}, XP: ${xp}`, ephemeral: true });
+      await interaction.reply({ embeds: [embed], ephemeral: true });
     } catch (error) {
       console.error('Error showing rank:', error);
       await interaction.reply({ content: 'There was an error showing your rank.', ephemeral: true });
