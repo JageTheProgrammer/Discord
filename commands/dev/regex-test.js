@@ -19,7 +19,7 @@ export default {
     o.setName('flags')
      .setDescription('Regex flags, e.g. gim')
      .setRequired(false)
-  )
+  ),
 	async execute(interaction) {
 		const pattern = interaction.options.getString('pattern');
 		const flags = interaction.options.getString('flags') || '';
