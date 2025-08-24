@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { REST, Routes } from 'discord.js';
-import path from 'node:path';
+import { readdirSync, statSync } from 'node:fs';
+import path, { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 // category emojis
@@ -14,13 +15,14 @@ const categoryEmojis = {
 
 // recursive loader for commands
 function getCommandFiles(dir) {
-  const { readdirSync, statSync } = require('node:fs');
-  const { join } = require('node:path');
   let files = [];
   for (const f of readdirSync(dir)) {
     const full = join(dir, f);
-    if (statSync(full).isDirectory()) files = files.concat(getCommandFiles(full));
-    else if (f.endsWith('.js')) files.push(full);
+    if (statSync(full).isDirectory()) {
+      files = files.concat(getCommandFiles(full));
+    } else if (f.endsWith('.js')) {
+      files.push(full);
+    }
   }
   return files;
 }
