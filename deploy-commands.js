@@ -1,9 +1,9 @@
 import 'dotenv/config';
 import { REST, Routes } from 'discord.js';
-import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+// category emojis
 const categoryEmojis = {
   Fun: '🎉',
   Moderation: '🔨',
@@ -12,51 +12,68 @@ const categoryEmojis = {
   Infra: '🛠️',
 };
 
-const ALLOWED_FOLDERS = ['community', 'dev', 'fun', 'infra', 'moderation'];
+// recursive loader for commands
+function getCommandFiles(dir) {
+  const { readdirSync, statSync } = require('node:fs');
+  const { join } = require('node:path');
+  let files = [];
+  for (const f of readdirSync(dir)) {
+    const full = join(dir, f);
+    if (statSync(full).isDirectory()) files = files.concat(getCommandFiles(full));
+    else if (f.endsWith('.js')) files.push(full);
+  }
+  return files;
+}
 
+// main deploy function
 export default async function deployCommands() {
   const commands = [];
   const categorized = [];
-
   const commandsPath = path.join(process.cwd(), 'commands');
-  const commandFolders = readdirSync(commandsPath).filter(f =>
-    ALLOWED_FOLDERS.includes(f.toLowerCase())
-  );
 
-  for (const folder of commandFolders) {
-    const folderPath = path.join(commandsPath, folder);
-    const commandFiles = readdirSync(folderPath).filter(f => f.endsWith('.js'));
+  const allFiles = getCommandFiles(commandsPath);
 
-    for (const file of commandFiles) {
-      const filePath = path.join(folderPath, file);
-      const moduleUrl = pathToFileURL(filePath).href;
-      const imported = await import(moduleUrl);
-      const command = imported.default ?? imported;
-
-      if (!command?.data || !command?.execute) continue;
-
-      const category = folder.charAt(0).toUpperCase() + folder.slice(1);
-
-      // prevent duplicate command names
-      if (commands.some(c => c.name === command.data.name)) {
-        console.log(`⚠️ Skipping duplicate: ${command.data.name}`);
-        continue;
-      }
-
-      categorized.push({ ...command, category });
-      commands.push(command.data.toJSON());
+  for (const filePath of allFiles) {
+    const moduleUrl = pathToFileURL(filePath).href;
+    let imported;
+    try {
+      imported = await import(moduleUrl);
+    } catch (err) {
+      console.log(`⚠️ Failed to import ${filePath}, skipping. Error: ${err.message}`);
+      continue;
     }
+
+    const command = imported.default ?? imported;
+
+    if (!command?.data || !command?.execute) {
+      console.log(`⚠️ Skipping invalid command: ${filePath}`);
+      continue;
+    }
+
+    // skip command #44 / regex-test
+    if (command.data.name === 'regex-test') {
+      console.log(`⏩ Skipping command: ${command.data.name}`);
+      continue;
+    }
+
+    const folder = filePath.split(path.sep).slice(-2, -1)[0];
+    const category = folder.charAt(0).toUpperCase() + folder.slice(1);
+
+    if (commands.some(c => c.name === command.data.name)) {
+      console.log(`⚠️ Skipping duplicate: ${command.data.name}`);
+      continue;
+    }
+
+    categorized.push({ ...command, category });
+    commands.push(command.data.toJSON());
   }
+
+  console.log(`🛠️ Deploying ${commands.length} commands...`);
 
   const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
 
   try {
-    console.log(`🛠️ Deploying ${commands.length} global (/) commands...`);
-
-    const route = Routes.applicationCommands(process.env.CLIENT_ID);
-
-    // overwrite everything in one go → no leftovers
-    await rest.put(route, { body: commands });
+    await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
 
     // log grouped by category
     const grouped = {};
@@ -78,7 +95,7 @@ export default async function deployCommands() {
   }
 }
 
-// Allow running via `node deploy-commands.js`
+// allow running via `node deploy-commands.js`
 if (import.meta.url === `file://${process.argv[1]}`) {
   deployCommands();
 }
