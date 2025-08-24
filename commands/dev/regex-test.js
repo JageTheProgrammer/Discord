@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 import { createEmbed, UI_COLORS } from '../../utils/ui.js';
 
 export default {
-	data: new SlashCommandBuilder()
+data: new SlashCommandBuilder()
   .setName('regex-test')
   .setDescription('Test a regex against input text')
   .addStringOption(o =>
@@ -15,11 +15,13 @@ export default {
      .setDescription('Text to test')
      .setRequired(true)
   )
+  // optional MUST come after required
   .addStringOption(o =>
     o.setName('flags')
      .setDescription('Regex flags, e.g. gim')
      .setRequired(false)
   ),
+
 	async execute(interaction) {
 		const pattern = interaction.options.getString('pattern');
 		const flags = interaction.options.getString('flags') || '';
