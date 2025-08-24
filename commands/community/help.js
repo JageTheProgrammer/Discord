@@ -21,6 +21,8 @@ export default {
     .setDescription('List all available commands with descriptions'),
 
   async execute(interaction) {
+    await interaction.deferReply({ ephemeral: true });
+
     const commands = interaction.client.commands;
 
     // Group commands by category
@@ -38,66 +40,68 @@ export default {
 
     const categories = Object.entries(grouped);
     if (!categories.length) {
-      return interaction.reply({ content: '❌ No commands found.', ephemeral: true });
+      return interaction.editReply({ content: '❌ No commands found.', ephemeral: true });
     }
 
-    // Build embeds per category, splitting if too long
+    // Build embeds (1 per category, multiple pages if needed)
     const pages = [];
     categories.forEach(([cat, cmds]) => {
       const emoji = categoryEmojis[cat] || '';
-      let chunk = '';
-      let pageCount = 0;
+      const cmdLines = cmds.map(c => `\`/${c.name}\` — ${c.description}`);
 
-      cmds.forEach(c => {
-        const line = `\`/${c.name}\` — ${c.description}\n`;
-        if (chunk.length + line.length > 4000) {
-          pages.push(
-            new EmbedBuilder()
-              .setTitle(`🤖 Bot Commands — ${emoji} ${cat}`)
-              .setDescription(chunk)
-              .setColor('#FF6A00')
-              .setFooter({ text: `Page ${pages.length + 1}` })
-          );
-          chunk = '';
-        }
-        chunk += line;
-      });
-
-      if (chunk.length) {
-        pages.push(
-          new EmbedBuilder()
+      let description = '';
+      const maxLength = 4000; // Leave room for title & footer
+      for (const line of cmdLines) {
+        if (description.length + line.length + 1 > maxLength) {
+          pages.push(new EmbedBuilder()
             .setTitle(`🤖 Bot Commands — ${emoji} ${cat}`)
-            .setDescription(chunk)
             .setColor('#FF6A00')
-            .setFooter({ text: `Page ${pages.length + 1}` })
+            .setDescription(description.trim())
+            .setFooter({ text: `Category: ${cat}` })
+          );
+          description = line + '\n';
+        } else {
+          description += line + '\n';
+        }
+      }
+
+      if (description) {
+        pages.push(new EmbedBuilder()
+          .setTitle(`🤖 Bot Commands — ${emoji} ${cat}`)
+          .setColor('#FF6A00')
+          .setDescription(description.trim())
+          .setFooter({ text: `Category: ${cat}` })
         );
       }
     });
 
     let page = 0;
 
-    const row = new ActionRowBuilder().addComponents([
+    const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId('prev').setLabel('⬅️ Prev').setStyle(ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId('next').setLabel('Next ➡️').setStyle(ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId('stop').setLabel('🛑 Close').setStyle(ButtonStyle.Danger),
-    ]);
+    );
 
-    await interaction.reply({
+    const msg = await interaction.editReply({
       embeds: [pages[page]],
       components: [row],
-      ephemeral: true,
     });
 
-    const msg = await interaction.fetchReply();
-    const collector = msg.createMessageComponentCollector({ time: 60_000 });
+    const collector = msg.createMessageComponentCollector({
+      time: 120_000,
+    });
 
     collector.on('collect', async i => {
-      if (i.user.id !== interaction.user.id)
+      if (i.user.id !== interaction.user.id) {
         return i.reply({ content: "⚠️ This menu isn't for you!", ephemeral: true });
+      }
 
-      if (i.customId === 'prev') page = (page - 1 + pages.length) % pages.length;
-      else if (i.customId === 'next') page = (page + 1) % pages.length;
-      else if (i.customId === 'stop') {
+      if (i.customId === 'prev') {
+        page = (page - 1 + pages.length) % pages.length;
+      } else if (i.customId === 'next') {
+        page = (page + 1) % pages.length;
+      } else if (i.customId === 'stop') {
         collector.stop();
         return i.update({ content: '❌ Help menu closed.', embeds: [], components: [] });
       }
@@ -106,7 +110,7 @@ export default {
     });
 
     collector.on('end', async () => {
-      if (!interaction.ephemeral && msg.editable) {
+      if (msg.editable) {
         await msg.edit({ components: [] }).catch(() => {});
       }
     });
