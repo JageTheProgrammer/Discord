@@ -41,27 +41,47 @@ export default {
       return interaction.reply({ content: '❌ No commands found.', ephemeral: true });
     }
 
-    // Build embeds (1 per category)
-    const pages = categories.map(([cat, cmds], idx) => {
+    // Build embeds per category, splitting if too long
+    const pages = [];
+    categories.forEach(([cat, cmds]) => {
       const emoji = categoryEmojis[cat] || '';
-      return new EmbedBuilder()
-        .setTitle(`🤖 Bot Commands — ${emoji} ${cat}`)
-        .setColor('#FF6A00')
-        .setDescription(
-          cmds.map(c => `\`/${c.name}\` — ${c.description}`).join('\n')
-        )
-        .setFooter({ text: `Page ${idx + 1} of ${categories.length}` });
+      let chunk = '';
+      let pageCount = 0;
+
+      cmds.forEach(c => {
+        const line = `\`/${c.name}\` — ${c.description}\n`;
+        if (chunk.length + line.length > 4000) {
+          pages.push(
+            new EmbedBuilder()
+              .setTitle(`🤖 Bot Commands — ${emoji} ${cat}`)
+              .setDescription(chunk)
+              .setColor('#FF6A00')
+              .setFooter({ text: `Page ${pages.length + 1}` })
+          );
+          chunk = '';
+        }
+        chunk += line;
+      });
+
+      if (chunk.length) {
+        pages.push(
+          new EmbedBuilder()
+            .setTitle(`🤖 Bot Commands — ${emoji} ${cat}`)
+            .setDescription(chunk)
+            .setColor('#FF6A00')
+            .setFooter({ text: `Page ${pages.length + 1}` })
+        );
+      }
     });
 
     let page = 0;
 
-    const row = new ActionRowBuilder().addComponents(
+    const row = new ActionRowBuilder().addComponents([
       new ButtonBuilder().setCustomId('prev').setLabel('⬅️ Prev').setStyle(ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId('next').setLabel('Next ➡️').setStyle(ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId('stop').setLabel('🛑 Close').setStyle(ButtonStyle.Danger),
-    );
+    ]);
 
-    // Initial reply
     await interaction.reply({
       embeds: [pages[page]],
       components: [row],
@@ -69,20 +89,15 @@ export default {
     });
 
     const msg = await interaction.fetchReply();
-    const collector = msg.createMessageComponentCollector({
-      time: 60_000, // 1 min
-    });
+    const collector = msg.createMessageComponentCollector({ time: 60_000 });
 
     collector.on('collect', async i => {
-      if (i.user.id !== interaction.user.id) {
+      if (i.user.id !== interaction.user.id)
         return i.reply({ content: "⚠️ This menu isn't for you!", ephemeral: true });
-      }
 
-      if (i.customId === 'prev') {
-        page = (page - 1 + pages.length) % pages.length;
-      } else if (i.customId === 'next') {
-        page = (page + 1) % pages.length;
-      } else if (i.customId === 'stop') {
+      if (i.customId === 'prev') page = (page - 1 + pages.length) % pages.length;
+      else if (i.customId === 'next') page = (page + 1) % pages.length;
+      else if (i.customId === 'stop') {
         collector.stop();
         return i.update({ content: '❌ Help menu closed.', embeds: [], components: [] });
       }
@@ -91,7 +106,7 @@ export default {
     });
 
     collector.on('end', async () => {
-      if (msg.editable) {
+      if (!interaction.ephemeral && msg.editable) {
         await msg.edit({ components: [] }).catch(() => {});
       }
     });
