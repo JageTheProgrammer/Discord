@@ -26,7 +26,7 @@ export default {
     const githubLink = interaction.options.getString('github_link');
     const description = interaction.options.getString('description');
 
-    const projectShowcaseChannelId = 'PROJECT_SHOWCASE_CHANNEL_ID';
+    const projectShowcaseChannelId = '1408469162803724288';
     const projectShowcaseChannel = interaction.client.channels.cache.get(projectShowcaseChannelId);
 
     if (!projectShowcaseChannel) {
