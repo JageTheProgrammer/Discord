@@ -1,4 +1,10 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+} from 'discord.js';
 
 const categoryEmojis = {
   Fun: '🎉',
@@ -22,21 +28,72 @@ export default {
     commands.forEach(cmd => {
       const cat = cmd.category || 'Other';
       if (!grouped[cat]) grouped[cat] = [];
-      grouped[cat].push({ name: cmd.data.name, description: cmd.data.description || 'No description' });
+
+      const data = cmd.data.toJSON?.() ?? cmd.data;
+      grouped[cat].push({
+        name: data.name,
+        description: data.description || 'No description',
+      });
     });
 
-    const embed = new EmbedBuilder()
-      .setTitle('🤖 Bot Commands')
-      .setColor('#FF6A00')
-      .setDescription('Here are all my commands, grouped by category:');
-
-    // Add each category with command descriptions
-    for (const [cat, cmds] of Object.entries(grouped)) {
-      const emoji = categoryEmojis[cat] || '';
-      const value = cmds.map(c => `\`/${c.name}\` — ${c.description}`).join('\n');
-      embed.addFields({ name: `${emoji} ${cat} (${cmds.length})`, value });
+    const categories = Object.entries(grouped);
+    if (!categories.length) {
+      return interaction.reply({ content: '❌ No commands found.', ephemeral: true });
     }
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    // Build embeds (1 per category)
+    const pages = categories.map(([cat, cmds], idx) => {
+      const emoji = categoryEmojis[cat] || '';
+      return new EmbedBuilder()
+        .setTitle(`🤖 Bot Commands — ${emoji} ${cat}`)
+        .setColor('#FF6A00')
+        .setDescription(
+          cmds.map(c => `\`/${c.name}\` — ${c.description}`).join('\n')
+        )
+        .setFooter({ text: `Page ${idx + 1} of ${categories.length}` });
+    });
+
+    let page = 0;
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('prev').setLabel('⬅️ Prev').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId('next').setLabel('Next ➡️').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId('stop').setLabel('🛑 Close').setStyle(ButtonStyle.Danger),
+    );
+
+    // Initial reply
+    await interaction.reply({
+      embeds: [pages[page]],
+      components: [row],
+      ephemeral: true,
+    });
+
+    const msg = await interaction.fetchReply();
+    const collector = msg.createMessageComponentCollector({
+      time: 60_000, // 1 min
+    });
+
+    collector.on('collect', async i => {
+      if (i.user.id !== interaction.user.id) {
+        return i.reply({ content: "⚠️ This menu isn't for you!", ephemeral: true });
+      }
+
+      if (i.customId === 'prev') {
+        page = (page - 1 + pages.length) % pages.length;
+      } else if (i.customId === 'next') {
+        page = (page + 1) % pages.length;
+      } else if (i.customId === 'stop') {
+        collector.stop();
+        return i.update({ content: '❌ Help menu closed.', embeds: [], components: [] });
+      }
+
+      await i.update({ embeds: [pages[page]], components: [row] });
+    });
+
+    collector.on('end', async () => {
+      if (msg.editable) {
+        await msg.edit({ components: [] }).catch(() => {});
+      }
+    });
   },
 };
